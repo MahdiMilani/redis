@@ -1,0 +1,17 @@
+.vs
+.vscode
+
+**/Logs
+**/bin
+**/obj
+**/packages
+
+/publish/*
+!/publish/.publish
+
+*.dbmdl
+*.jfm
+*.user
+
+*.LiteDb
+*.rar
