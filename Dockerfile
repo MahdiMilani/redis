@@ -1,24 +1,23 @@
-# استفاده از پایه‌ی تصویر .NET 8.0 SDK برای ساختن پروژه
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-WORKDIR /src
-
-# کپی فایل‌های csproj و بازسازی وابستگی‌ها
-COPY ["RedisAPI.csproj", "./"]
-RUN dotnet restore "RedisAPI.csproj"
-
-# کپی تمام فایل‌های منبع
-COPY . .
-
-# ساختن پروژه
-RUN dotnet publish "RedisAPI.csproj" -c Release -o /app/publish
-
-# استفاده از تصویر Runtime برای اجرای پروژه
-FROM mcr.microsoft.com/dotnet/aspnet:8.0
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+USER app
 WORKDIR /app
-COPY --from=build /app/publish .
+EXPOSE 8080
+EXPOSE 8081
 
-# تنظیم پورت شبکه
-EXPOSE 80
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+ARG BUILD_CONFIGURATION=Release
+WORKDIR /src
+COPY ["RedisApi.csproj", "."]
+RUN dotnet restore "./RedisApi.csproj"
+COPY . .
+WORKDIR "/src/."
+RUN dotnet build "./RedisApi.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
-# تنظیم دستور اجرای کانتینر
-ENTRYPOINT ["dotnet", "RedisAPI.dll"]
+FROM build AS publish
+ARG BUILD_CONFIGURATION=Release
+RUN dotnet publish "./RedisApi.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+ENTRYPOINT ["dotnet", "RedisApi.dll"]
