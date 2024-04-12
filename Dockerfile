@@ -1,23 +1,18 @@
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
-USER app
-WORKDIR /app
-EXPOSE 8080
-EXPOSE 8081
-
+# استفاده از تصویر پایه‌ی SDK برای ساخت پروژه
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["RedisApi.csproj", "./"]
-RUN dotnet restore "./RedisApi.csproj"
+COPY ["RedisApi/RedisApi.csproj", "RedisApi/"]
+RUN dotnet restore "RedisApi/RedisApi.csproj"
 COPY . .
-WORKDIR "/src/."
-RUN dotnet build "./RedisApi.csproj" -c $BUILD_CONFIGURATION -o /app/build
+WORKDIR "/src/RedisApi"
+RUN dotnet build "RedisApi.csproj" -c Release -o /app/build
 
+# ساخت نسخه‌ی نهایی و انتشار پروژه
 FROM build AS publish
-ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./RedisApi.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "RedisApi.csproj" -c Release -o /app/publish
 
-FROM base AS final
+# تعریف تصویر نهایی که از تصویر پایه‌ی ASP.NET Runtime استفاده می‌کند
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
 ENTRYPOINT ["dotnet", "RedisApi.dll"]
